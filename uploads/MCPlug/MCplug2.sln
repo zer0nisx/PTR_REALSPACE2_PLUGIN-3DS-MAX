@@ -1,0 +1,42 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36414.22 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MCplug2", "MCplug2.vcxproj", "{BEBCB677-F42B-4E85-9691-585520CBDC10}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cml", "..\..\CML\cml.vcproj", "{8D451493-65C2-49C3-ADAE-ACB17E6B0650}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RealSpace2", "..\..\RealSpace2\RealSpace2.vcproj", "{68FD6FF4-464A-4484-B397-0DFCC060B773}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+		Release2008|x86 = Release2008|x86
+		Release2011|x86 = Release2011|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BEBCB677-F42B-4E85-9691-585520CBDC10}.Debug|x86.ActiveCfg = Debug|Win32
+		{BEBCB677-F42B-4E85-9691-585520CBDC10}.Debug|x86.Build.0 = Debug|Win32
+		{BEBCB677-F42B-4E85-9691-585520CBDC10}.Release|x86.ActiveCfg = Release|Win32
+		{BEBCB677-F42B-4E85-9691-585520CBDC10}.Release|x86.Build.0 = Release|Win32
+		{BEBCB677-F42B-4E85-9691-585520CBDC10}.Release2008|x86.ActiveCfg = Release2008|Win32
+		{BEBCB677-F42B-4E85-9691-585520CBDC10}.Release2008|x86.Build.0 = Release2008|Win32
+		{BEBCB677-F42B-4E85-9691-585520CBDC10}.Release2011|x86.ActiveCfg = Release2011|Win32
+		{BEBCB677-F42B-4E85-9691-585520CBDC10}.Release2011|x86.Build.0 = Release2011|Win32
+		{8D451493-65C2-49C3-ADAE-ACB17E6B0650}.Debug|x86.ActiveCfg = Debug|Win32
+		{8D451493-65C2-49C3-ADAE-ACB17E6B0650}.Release|x86.ActiveCfg = Release|Win32
+		{8D451493-65C2-49C3-ADAE-ACB17E6B0650}.Release2008|x86.ActiveCfg = Release|Win32
+		{8D451493-65C2-49C3-ADAE-ACB17E6B0650}.Release2011|x86.ActiveCfg = Release|Win32
+		{68FD6FF4-464A-4484-B397-0DFCC060B773}.Debug|x86.ActiveCfg = Debug|Win32
+		{68FD6FF4-464A-4484-B397-0DFCC060B773}.Release|x86.ActiveCfg = Release|Win32
+		{68FD6FF4-464A-4484-B397-0DFCC060B773}.Release2008|x86.ActiveCfg = Release|Win32
+		{68FD6FF4-464A-4484-B397-0DFCC060B773}.Release2011|x86.ActiveCfg = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {64CB452D-7013-4403-97E1-F17D523A14F8}
+	EndGlobalSection
+EndGlobal
