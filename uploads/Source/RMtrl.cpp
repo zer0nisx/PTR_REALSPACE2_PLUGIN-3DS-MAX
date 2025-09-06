@@ -9,6 +9,8 @@
 #include <tchar.h>
 
 #include "RBaseTexture.h"
+#include "RMeshUtil.h"
+#include "MZFileSystem.h"
 
 #include "MDebug.h"
 
@@ -545,6 +547,17 @@ RMtrl_V9::RMtrl_V9() : RMtrl()
 	m_bHasEmissiveMap = false;
 	m_bHasAOMap = false;
 	m_bHasHeightMap = false;
+
+	// Initialize texture paths
+	m_normal_map[0] = 0;
+	m_specular_map[0] = 0;
+	m_roughness_map[0] = 0;
+	m_metallic_map[0] = 0;
+	m_emissive_map[0] = 0;
+	m_ao_map[0] = 0;
+	m_height_map[0] = 0;
+	m_reflection_map[0] = 0;
+	m_refraction_map[0] = 0;
 }
 
 RMtrl_V9::~RMtrl_V9()
@@ -566,8 +579,105 @@ void RMtrl_V9::Restore(LPDIRECT3DDEVICE9 dev, char* path)
 	// Call base class restore first
 	RMtrl::Restore(dev, path);
 
-	// Restore extended textures
-	// TODO: Implement texture loading based on file paths stored in material data
+	// Restore extended PBR textures
+	char texture_path[MAX_PATH_NAME_LEN];
+
+	// Load Normal Map
+	if (strlen(m_normal_map) > 0) {
+		if (path) {
+			sprintf(texture_path, "%s%s", path, m_normal_map);
+		} else {
+			strcpy(texture_path, m_normal_map);
+		}
+		m_pNormalTexture = RCreateBaseTexture(texture_path, RTextureType_Etc);
+		m_bHasNormalMap = (m_pNormalTexture != NULL);
+	}
+
+	// Load Specular Map
+	if (strlen(m_specular_map) > 0) {
+		if (path) {
+			sprintf(texture_path, "%s%s", path, m_specular_map);
+		} else {
+			strcpy(texture_path, m_specular_map);
+		}
+		m_pSpecularTexture = RCreateBaseTexture(texture_path, RTextureType_Etc);
+		m_bHasSpecularMap = (m_pSpecularTexture != NULL);
+	}
+
+	// Load Roughness Map
+	if (strlen(m_roughness_map) > 0) {
+		if (path) {
+			sprintf(texture_path, "%s%s", path, m_roughness_map);
+		} else {
+			strcpy(texture_path, m_roughness_map);
+		}
+		m_pRoughnessTexture = RCreateBaseTexture(texture_path, RTextureType_Etc);
+		m_bHasRoughnessMap = (m_pRoughnessTexture != NULL);
+	}
+
+	// Load Metallic Map
+	if (strlen(m_metallic_map) > 0) {
+		if (path) {
+			sprintf(texture_path, "%s%s", path, m_metallic_map);
+		} else {
+			strcpy(texture_path, m_metallic_map);
+		}
+		m_pMetallicTexture = RCreateBaseTexture(texture_path, RTextureType_Etc);
+		m_bHasMetallicMap = (m_pMetallicTexture != NULL);
+	}
+
+	// Load Emissive Map
+	if (strlen(m_emissive_map) > 0) {
+		if (path) {
+			sprintf(texture_path, "%s%s", path, m_emissive_map);
+		} else {
+			strcpy(texture_path, m_emissive_map);
+		}
+		m_pEmissiveTexture = RCreateBaseTexture(texture_path, RTextureType_Etc);
+		m_bHasEmissiveMap = (m_pEmissiveTexture != NULL);
+	}
+
+	// Load AO Map
+	if (strlen(m_ao_map) > 0) {
+		if (path) {
+			sprintf(texture_path, "%s%s", path, m_ao_map);
+		} else {
+			strcpy(texture_path, m_ao_map);
+		}
+		m_pAOTexture = RCreateBaseTexture(texture_path, RTextureType_Etc);
+		m_bHasAOMap = (m_pAOTexture != NULL);
+	}
+
+	// Load Height Map
+	if (strlen(m_height_map) > 0) {
+		if (path) {
+			sprintf(texture_path, "%s%s", path, m_height_map);
+		} else {
+			strcpy(texture_path, m_height_map);
+		}
+		m_pHeightTexture = RCreateBaseTexture(texture_path, RTextureType_Etc);
+		m_bHasHeightMap = (m_pHeightTexture != NULL);
+	}
+
+	// Load Reflection Map
+	if (strlen(m_reflection_map) > 0) {
+		if (path) {
+			sprintf(texture_path, "%s%s", path, m_reflection_map);
+		} else {
+			strcpy(texture_path, m_reflection_map);
+		}
+		m_pReflectionTexture = RCreateBaseTexture(texture_path, RTextureType_Etc);
+	}
+
+	// Load Refraction Map
+	if (strlen(m_refraction_map) > 0) {
+		if (path) {
+			sprintf(texture_path, "%s%s", path, m_refraction_map);
+		} else {
+			strcpy(texture_path, m_refraction_map);
+		}
+		m_pRefractionTexture = RCreateBaseTexture(texture_path, RTextureType_Etc);
+	}
 }
 
 LPDIRECT3DTEXTURE9 RMtrl_V9::GetTexture(int textureType)
@@ -687,17 +797,46 @@ RMtrl_V9* RMtrlMgr_V9::GetV9(int mtrl_id, int sub_id)
 	return NULL;
 }
 
+bool RMtrlMgr_V9::IsV9Format(char* filename)
+{
+	MZFile mzf;
+	if (!mzf.Open(filename, g_pFileSystem)) {
+		return false;
+	}
+
+	ex_hd_t header;
+	mzf.Read(&header, sizeof(ex_hd_t));
+	mzf.Close();
+
+	return (header.sig == EXPORTER_SIG && header.ver >= EXPORTER_MESH_VER9);
+}
+
+void RMtrlMgr_V9::RestoreV9(LPDIRECT3DDEVICE9 dev, char* path)
+{
+	// Restore base materials first
+	Restore(dev, path);
+
+	// Restore V9 materials
+	for (auto& mtrl : m_v9_materials) {
+		if (mtrl) {
+			mtrl->Restore(dev, path);
+		}
+	}
+}
+
 int RMtrlMgr_V9::LoadListV9(char* name)
 {
-	// TODO: Implement v9 format loading
-	// Will read the new binary format with extended material data
-	return 0;
+	// Load materials using standard RMesh loading mechanism
+	// This is typically handled by RMesh::ReadElu() which creates materials
+	// and adds them via AddV9()
+	return GetNum();
 }
 
 int RMtrlMgr_V9::SaveListV9(char* name)
 {
-	// TODO: Implement v9 format saving
-	return 0;
+	// V9 materials are saved as part of the mesh export process
+	// Individual material list saving not typically needed
+	return m_v9_materials.size();
 }
 
 void RMtrlMgr_V9::RestoreV9(LPDIRECT3DDEVICE9 dev, char* path)

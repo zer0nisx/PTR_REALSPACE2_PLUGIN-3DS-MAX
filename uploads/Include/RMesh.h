@@ -6,6 +6,7 @@
 
 #include "RMeshNode.h"
 #include "RAnimationMgr.h"
+#include "RMtrl.h"
 #include "mempool.h"
 
 class MXmlElement;
@@ -55,7 +56,7 @@ enum ALPHAPASS {
 
 
 
-class RRenderNode 
+class RRenderNode
 {
 public:
 	RRenderNode() {
@@ -67,7 +68,7 @@ public:
 		Set(Rmode,m,pMNode,nMtrl,begin,size,vis_alpha);
 	}
 
-	
+
 	void Set(int Rmode,rmatrix& m,RMeshNode* pMNode,RMtrl* pMtrl,int begin,int size,float vis_alpha) {
 		m_RenderMode = Rmode;
 		m_matWorld = m;
@@ -207,7 +208,7 @@ public:
 
 
 
-inline bool render_alpha_sort(RMeshNode* _a,RMeshNode* _b) 
+inline bool render_alpha_sort(RMeshNode* _a,RMeshNode* _b)
 {
 	if( _a->m_fDist < _b->m_fDist )
 		return true;
@@ -249,12 +250,12 @@ public:
 		m_node_list[RRMT_Alpha].sort(render_alpha_sort);
 	}
 
-	
+
 
 	void Render() {
-		
-		
-		
+
+
+
 
 	}
 
@@ -336,7 +337,7 @@ public:
 
 	void SetLitVertexModel(bool v);
 
-	
+
 
 	void SetShaderDiffuseMap(RMtrl* pMtrl,DWORD color);
 	void SetShaderAlphaMap();
@@ -357,7 +358,7 @@ public:
 	void SetCharacterMtrl_OFF(RMtrl* pMtrl,float vis_alpha);
 	int  GetCharacterMtrlMode(RMtrl* pMtrl,float vis_alpha);
 
-	void ReloadAnimation();	
+	void ReloadAnimation();
 
 	void SkyBoxMtrlOn();
 	void SkyBoxMtrlOff();
@@ -399,7 +400,7 @@ public:
 	void  SetFrame(int nFrame,int nFrame2 = -1);
 
 	bool AddNode(char* name,char* pname,rmatrix& base_mat);
-	bool DelNode(RMeshNode* data); 
+	bool DelNode(RMeshNode* data);
 
 	bool ConnectAnimation(RAnimation* pAniSet);
 	bool ConnectMtrl();
@@ -423,8 +424,8 @@ private:
 
 public:
 
-	bool SetAnimation(RAnimation* pAniSet,RAnimation* pAniSetUpper=NULL);	
-	bool SetAnimation(char* ani_name,char* ani_name_lower = NULL);			
+	bool SetAnimation(RAnimation* pAniSet,RAnimation* pAniSetUpper=NULL);
+	bool SetAnimation(char* ani_name,char* ani_name_lower = NULL);
 	void ClearAnimation();
 
 	void SetMtrlAutoLoad(bool b);
@@ -449,10 +450,10 @@ public:
 	RMeshNode* GetMeshData(char* name);
 	RMeshNode* GetPartsNode(char* name);
 
-	
 
 
-	
+
+
 
 	bool Pick(int x,int y,RPickInfo* pInfo,rmatrix* world_mat=NULL);
 	bool Pick(rvector* vInVec,RPickInfo* pInfo,rmatrix* world_mat=NULL);
@@ -467,12 +468,12 @@ public:
 
 	RPickType GetPickingType();
 
-	
+
 	void SetMeshWeaponMotionType(RWeaponMotionType t);
 	RWeaponMotionType GetMeshWeaponMotionType();
 
-	
-	
+
+
 	rvector GetOrgPosition();
 
 	void SetPhysiqueMeshMesh(bool b);
@@ -524,7 +525,7 @@ public:
 	D3DXVECTOR3		m_vBBMaxNodeMatrix;
 	D3DXVECTOR3		m_vBBMinNodeMatrix;
 
-	bool			m_is_use_ani_set;	
+	bool			m_is_use_ani_set;
 
 	rvector			m_vAddBipCenter;
 
@@ -534,14 +535,14 @@ public:
 	RVisualMesh*	m_pVisualMesh;
 	RAnimation*		m_pAniSet[2];
 
-	
-	
+
+
 
 	RMeshMgr*		m_parts_mgr;
 
-	
-	
-	
+
+
+
 
 	RAnimationMgr	m_ani_mgr;
 
@@ -555,10 +556,11 @@ public:
 
 	RMesh*			m_base_mtrl_mesh;
 
-	
-	
-	
+
+
+
 	RMtrlMgr		m_mtrl_list_ex;
+	RMtrlMgr_V9*	m_mtrl_list_ex_v9;
 
 	bool			mbSkyBox;
 
@@ -573,14 +575,14 @@ public:
 
 	bool m_isMeshLoaded;
 
-	
-	
+
+
 
 	void		SetToolSelectNode(RMeshNode* pMNode) {	m_pToolSelectNode = pMNode;	}
 	RMeshNode*	GetToolSelectNode()					 { return m_pToolSelectNode;  }
 	void		SetToolSelectNodeName(char* name)	 { SetToolSelectNode(GetMeshData(name)); }
 
-	static _RMeshPartsType m_OnlyRenderPartsType;	
+	static _RMeshPartsType m_OnlyRenderPartsType;
 
 private:
 
@@ -590,7 +592,7 @@ public:
 
 public:
 
-	
+
 
 	static bool  m_bTextureRenderOnOff;
 	static bool  m_bVertexNormalOnOff;
@@ -628,7 +630,7 @@ public:
 	}
 
 	~RPickInfo() {
-		
+
 	}
 
 public:
@@ -653,4 +655,4 @@ void RenderNodeMgr_Render();
 _NAMESPACE_REALSPACE2_END
 
 
-#endif 
+#endif

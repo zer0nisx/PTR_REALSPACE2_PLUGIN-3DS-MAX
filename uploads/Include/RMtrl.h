@@ -150,6 +150,17 @@ public:
 	RBaseTexture* m_pReflectionTexture;
 	RBaseTexture* m_pRefractionTexture;
 
+	// Texture file paths
+	char	m_normal_map[MAX_PATH_NAME_LEN];
+	char	m_specular_map[MAX_PATH_NAME_LEN];
+	char	m_roughness_map[MAX_PATH_NAME_LEN];
+	char	m_metallic_map[MAX_PATH_NAME_LEN];
+	char	m_emissive_map[MAX_PATH_NAME_LEN];
+	char	m_ao_map[MAX_PATH_NAME_LEN];
+	char	m_height_map[MAX_PATH_NAME_LEN];
+	char	m_reflection_map[MAX_PATH_NAME_LEN];
+	char	m_refraction_map[MAX_PATH_NAME_LEN];
+
 	// PBR properties
 	float		m_roughness;			// 0.0-1.0
 	float		m_metallic;				// 0.0-1.0

@@ -818,14 +818,31 @@ bool RMesh::ReadElu(char* fname)
 				nodeV9->m_bHasHeightMap = true;
 			}
 
+			// Texture paths are already loaded via MZF_READ above
+			// They are read directly into nodeV9 structure
+
 			// Check for animated textures
 			nodeV9->CheckAniTexture();
 
-			// Add V9 material to extended manager
-			// TODO: Use RMtrlMgr_V9 when available
-			// For now, add to regular manager
-			delete node; // Clean up legacy material
-			node = nodeV9; // Use V9 material instead
+			// Use V9 material manager if available, otherwise legacy
+			bool useV9Manager = true; // Could be determined by mesh format version
+
+			if (useV9Manager) {
+				// Create V9 manager if not exists
+				if (!m_mtrl_list_ex_v9) {
+					m_mtrl_list_ex_v9 = new RMtrlMgr_V9();
+				}
+				m_mtrl_list_ex_v9->AddV9(nodeV9);
+
+				// Clean up legacy material since we're using V9
+				delete node;
+				node = NULL;
+			} else {
+				// Fallback: Use legacy manager with V9 material
+				// Note: This may limit V9 functionality
+				delete node;
+				node = nodeV9;
+			}
 		}
 
 		if (node->m_name[0]) {

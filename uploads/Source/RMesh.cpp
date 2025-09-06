@@ -123,6 +123,9 @@ void RMesh::Init()
 	m_isMeshLoaded = false;
 
 	m_pToolSelectNode = NULL;
+
+	// Initialize V9 material manager
+	m_mtrl_list_ex_v9 = NULL;
 }
 
 void RMesh::Destroy()
@@ -132,6 +135,12 @@ void RMesh::Destroy()
 	if (m_parts_mgr) {
 		delete m_parts_mgr;
 		m_parts_mgr = NULL;
+	}
+
+	// Cleanup V9 material manager
+	if (m_mtrl_list_ex_v9) {
+		delete m_mtrl_list_ex_v9;
+		m_mtrl_list_ex_v9 = NULL;
 	}
 
 	m_isMeshLoaded = false;
