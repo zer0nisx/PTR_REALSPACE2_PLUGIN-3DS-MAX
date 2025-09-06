@@ -76,6 +76,7 @@ public:
 	void	DumpMaterial_V9(Mtl* mtl, int mtlID, int subNo);
 	void	DumpTexture(Texmap* tex, Class_ID cid, int subNo, float amt, mtrl_data* mtrl_node);
 	void	DumpTexture_V9(Texmap* tex, Class_ID cid, int subNo, float amt, mtrl_data_v9* mtrl_node);
+	bool	ShouldUsePBRPipeline(Mtl* mtl);
 	void	DumpPosSample(INode* node, mesh_data* mesh_node);
 	void	DumpRotSample(INode* node, mesh_data* mesh_node);
 	void	DumpScaleSample(INode* node, mesh_data* mesh_node);

@@ -44,8 +44,53 @@ void MCplug2::export_mtrl_list()
 	int numMtls = mtlList.Count();
 
 	for (int i = 0; i < numMtls; i++) {
-		DumpMaterial(mtlList.GetMtl(i), i, -1);
+		Mtl* mtl = mtlList.GetMtl(i);
+
+		// Detect if material should use PBR pipeline
+		bool usePBR = ShouldUsePBRPipeline(mtl);
+
+		if (usePBR) {
+			DumpMaterial_V9(mtl, i, -1);
+		} else {
+			DumpMaterial(mtl, i, -1);
+		}
 	}
+}
+
+// Helper function to detect if material should use PBR pipeline
+bool MCplug2::ShouldUsePBRPipeline(Mtl* mtl)
+{
+	if (!mtl) return false;
+
+	const char* matName = mtl->GetName();
+
+	// Check material naming conventions
+	if (strstr(matName, "_pbr") || strstr(matName, "_PBR")) {
+		return true;
+	}
+
+	// Check for PBR texture maps in material
+	if (mtl->ClassID() == Class_ID(DMTL_CLASS_ID, 0)) {
+		StdMat* std = (StdMat*)mtl;
+
+		for (int i = 0; i < mtl->NumSubTexmaps(); i++) {
+			Texmap* subTex = mtl->GetSubTexmap(i);
+			if (subTex && std->MapEnabled(i)) {
+				const char* mapType = GetMapID(mtl->ClassID(), i);
+
+				// If we find any PBR-specific maps, use PBR pipeline
+				if (strcmp(mapType, ID_MAP_NORMAL) == 0 ||
+					strcmp(mapType, ID_MAP_ROUGHNESS) == 0 ||
+					strcmp(mapType, ID_MAP_METALLIC) == 0 ||
+					strcmp(mapType, ID_MAP_AO) == 0) {
+					return true;
+				}
+			}
+		}
+	}
+
+	// Default to legacy for backward compatibility
+	return false;
 }
 
 void MCplug2::DumpMaterial(Mtl* mtl, int mtlID, int subNo)
@@ -238,36 +283,8 @@ void MCplug2::DumpMaterial_V9(Mtl* mtl, int mtlID, int subNo)
 		}
 	}
 
-	// For now, add to the regular list (will need el_mesh extension)
-	// TODO: Update el_mesh to support v9 materials
-	//m_mesh_list.add_mtrl_v9(mtrl_node);
-
-	// Temporary: Convert back to legacy format for compatibility
-	mtrl_data* legacy_mtrl = new mtrl_data;
-	memset(legacy_mtrl, 0, sizeof(mtrl_data));
-
-	legacy_mtrl->m_id = mtrl_node->m_id;
-	legacy_mtrl->m_mtrl_id = mtrl_node->m_mtrl_id;
-	legacy_mtrl->m_sub_mtrl_id = mtrl_node->m_sub_mtrl_id;
-
-	strcpy(legacy_mtrl->m_tex_name, mtrl_node->m_tex_name);
-	strcpy(legacy_mtrl->m_opa_name, mtrl_node->m_opa_name);
-
-	legacy_mtrl->m_ambient = mtrl_node->m_ambient;
-	legacy_mtrl->m_diffuse = mtrl_node->m_diffuse;
-	legacy_mtrl->m_specular = mtrl_node->m_specular;
-	legacy_mtrl->m_power = mtrl_node->m_power;
-	legacy_mtrl->m_twosided = mtrl_node->m_twosided;
-	legacy_mtrl->m_sub_mtrl_num = mtrl_node->m_sub_mtrl_num;
-	legacy_mtrl->m_additive = mtrl_node->m_additive;
-	legacy_mtrl->m_alphatest_ref = mtrl_node->m_alphatest_ref;
-	legacy_mtrl->m_bUse = mtrl_node->m_bUse;
-
-	m_mesh_list.add_mtrl(legacy_mtrl);
-
-	// Store v9 data for later export (will implement el_mesh v9 support)
-	// TODO: Implement proper v9 storage
-	delete mtrl_node; // Temporary cleanup
+	// Add V9 material to the V9 pipeline
+	m_mesh_list.add_mtrl_v9(mtrl_node);
 }
 
 TCHAR* MCplug2::GetMapID(Class_ID cid, int subNo)

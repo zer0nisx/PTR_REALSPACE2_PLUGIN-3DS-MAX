@@ -237,11 +237,13 @@ public:
 
 	int	 add_mesh(mesh_data* data);
 	int	 add_mtrl(mtrl_data* data);
+	int	 add_mtrl_v9(mtrl_data_v9* data);
 
 	void del_mesh_list();
 
 	bool export_text(char* filename);
 	bool export_bin(char* filename);
+	bool export_bin_v9(char* filename);
 	bool export_ani(char* filename, int mode);
 	bool export_etc(char* filename);
 
@@ -252,6 +254,7 @@ public:
 	void ClearUsedMtrl();
 
 	mtrl_data* GetMtrl(int id, int sid);
+	mtrl_data_v9* GetMtrl_V9(int id, int sid);
 
 public:
 	int				m_max_frame;
@@ -263,6 +266,12 @@ public:
 	el_mtrl_list	m_mtrl_list;
 	vector<mtrl_data*> m_mtrl_data;
 	int				m_mtrl_num;
+
+	// V9 support
+	el_mtrl_list_v9	m_mtrl_list_v9;
+	vector<mtrl_data_v9*> m_mtrl_data_v9;
+	int				m_mtrl_v9_num;
+	bool			m_has_pbr_materials;
 };
 
 #endif

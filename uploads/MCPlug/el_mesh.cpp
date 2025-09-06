@@ -96,6 +96,10 @@ el_mesh::el_mesh()
 	m_max_frame = 0;
 	m_mtrl_num = 0;
 
+	// V9 initialization
+	m_mtrl_v9_num = 0;
+	m_has_pbr_materials = false;
+
 	m_data.reserve(MAX_MTRL);
 
 	for (int i = 0; i < MAX_MTRL; i++)
@@ -105,6 +109,12 @@ el_mesh::el_mesh()
 
 	for (int i = 0; i < MAX_MTRL; i++)
 		m_mtrl_data[i] = NULL;
+
+	// V9 material data initialization
+	m_mtrl_data_v9.reserve(MAX_MTRL);
+
+	for (int i = 0; i < MAX_MTRL; i++)
+		m_mtrl_data_v9[i] = NULL;
 }
 
 el_mesh::~el_mesh()
@@ -142,6 +152,30 @@ mtrl_data* el_mesh::GetMtrl(int mtrl_id, int sub_id)
 	mtrl_data* pMtrl = NULL;
 
 	for (node = m_mtrl_list.begin(); node != m_mtrl_list.end(); ++node) {
+		pMtrl = (*node);
+
+		if (pMtrl) {
+			if (pMtrl->m_mtrl_id == mtrl_id) {
+				if (pMtrl->m_sub_mtrl_id == sub_id) {
+					return pMtrl;
+				}
+			}
+		}
+	}
+
+	return NULL;
+}
+
+mtrl_data_v9* el_mesh::GetMtrl_V9(int mtrl_id, int sub_id)
+{
+	if (m_mtrl_list_v9.empty())
+		return NULL;
+
+	el_mtrl_node_v9 node;
+
+	mtrl_data_v9* pMtrl = NULL;
+
+	for (node = m_mtrl_list_v9.begin(); node != m_mtrl_list_v9.end(); ++node) {
 		pMtrl = (*node);
 
 		if (pMtrl) {
@@ -267,6 +301,23 @@ int el_mesh::add_mtrl(mtrl_data* data)
 	m_mtrl_data[m_mtrl_num] = data;
 	m_mtrl_num++;
 	return m_mtrl_num - 1;
+}
+
+int el_mesh::add_mtrl_v9(mtrl_data_v9* data)
+{
+	m_mtrl_list_v9.push_back(data);
+	m_has_pbr_materials = true;
+
+	if (MAX_MTRL <= m_mtrl_v9_num)
+	{
+		char buff[256];
+		sprintf(buff, "Material V9 memory limit exceeded. Please check!");
+		MessageBox(NULL, buff, "MCplug2 Error Message", MB_OK);
+	}
+
+	m_mtrl_data_v9[m_mtrl_v9_num] = data;
+	m_mtrl_v9_num++;
+	return m_mtrl_v9_num - 1;
 }
 
 void el_mesh::del_mesh_list()
@@ -442,13 +493,19 @@ bool el_mesh::export_text(char* filename)
 
 bool el_mesh::export_bin(char* filename)
 {
+	// If we have PBR materials, use V9 export format
+	if (m_has_pbr_materials && m_mtrl_v9_num > 0) {
+		return export_bin_v9(filename);
+	}
+
+	// Legacy export for non-PBR materials
 	ex_hd_t t_hd;
 
 	FILE* fp;
 	fp = fopen(filename, "wb");
 	if (fp == NULL) return false;
 
-	t_hd.ver = EXPORTER_MESH_VER9;
+	t_hd.ver = EXPORTER_MESH_VER8; // Use legacy version for legacy materials
 	t_hd.sig = EXPORTER_SIG;
 	t_hd.mtrl_num = m_mtrl_num;
 	t_hd.mesh_num = m_data_num;
@@ -480,73 +537,6 @@ bool el_mesh::export_bin(char* filename)
 		fwrite(&t_mtrl->m_twosided, sizeof(int), 1, fp);
 		fwrite(&t_mtrl->m_additive, sizeof(int), 1, fp);
 		fwrite(&t_mtrl->m_alphatest_ref, sizeof(int), 1, fp);
-
-		// ===== EXPORTER_MESH_VER9 - Write Extended PBR Data =====
-		// For now, write empty/default PBR data since we're using legacy mtrl_data
-		// TODO: When mtrl_data_v9 is integrated, use actual v9 data
-
-		// Write extended texture paths (empty for legacy materials)
-		char empty_path[MAX_PATH_NAME_LEN] = { 0 };
-		fwrite(empty_path, MAX_PATH_NAME_LEN, 1, fp); // normal_map
-		fwrite(empty_path, MAX_PATH_NAME_LEN, 1, fp); // specular_map
-		fwrite(empty_path, MAX_PATH_NAME_LEN, 1, fp); // roughness_map
-		fwrite(empty_path, MAX_PATH_NAME_LEN, 1, fp); // metallic_map
-		fwrite(empty_path, MAX_PATH_NAME_LEN, 1, fp); // emissive_map
-		fwrite(empty_path, MAX_PATH_NAME_LEN, 1, fp); // ao_map
-		fwrite(empty_path, MAX_PATH_NAME_LEN, 1, fp); // height_map
-		fwrite(empty_path, MAX_PATH_NAME_LEN, 1, fp); // reflection_map
-		fwrite(empty_path, MAX_PATH_NAME_LEN, 1, fp); // refraction_map
-
-		// Write PBR properties (default values for legacy materials)
-		float default_roughness = 0.5f;
-		float default_metallic = 0.0f;
-		float default_ior = 1.5f;
-		float default_emissive_intensity = 0.0f;
-		D3DXCOLOR default_emissive(0.0f, 0.0f, 0.0f, 1.0f);
-		int default_material_type = 0; // Legacy
-
-		fwrite(&default_roughness, sizeof(float), 1, fp);
-		fwrite(&default_metallic, sizeof(float), 1, fp);
-		fwrite(&default_ior, sizeof(float), 1, fp);
-		fwrite(&default_emissive_intensity, sizeof(float), 1, fp);
-		fwrite(&default_emissive, sizeof(D3DXCOLOR), 1, fp);
-		fwrite(&default_material_type, sizeof(int), 1, fp);
-
-		// Write UV channel assignments (all default to channel 0)
-		int default_uv_channel = 0;
-		fwrite(&default_uv_channel, sizeof(int), 1, fp); // uv_diffuse
-		fwrite(&default_uv_channel, sizeof(int), 1, fp); // uv_normal
-		fwrite(&default_uv_channel, sizeof(int), 1, fp); // uv_specular
-		fwrite(&default_uv_channel, sizeof(int), 1, fp); // uv_roughness
-		fwrite(&default_uv_channel, sizeof(int), 1, fp); // uv_metallic
-		fwrite(&default_uv_channel, sizeof(int), 1, fp); // uv_emissive
-		fwrite(&default_uv_channel, sizeof(int), 1, fp); // uv_ao
-		fwrite(&default_uv_channel, sizeof(int), 1, fp); // uv_height
-
-		// Write UV transformations (default values)
-		D3DXVECTOR2 default_tiling(1.0f, 1.0f);
-		D3DXVECTOR2 default_offset(0.0f, 0.0f);
-		float default_rotation = 0.0f;
-
-		for (int uv_idx = 0; uv_idx < 8; uv_idx++) {
-			fwrite(&default_tiling, sizeof(D3DXVECTOR2), 1, fp);
-		}
-		for (int uv_idx = 0; uv_idx < 8; uv_idx++) {
-			fwrite(&default_offset, sizeof(D3DXVECTOR2), 1, fp);
-		}
-		for (int uv_idx = 0; uv_idx < 8; uv_idx++) {
-			fwrite(&default_rotation, sizeof(float), 1, fp);
-		}
-
-		// Write texture flags (all false for legacy materials)
-		bool default_has_texture = false;
-		fwrite(&default_has_texture, sizeof(bool), 1, fp); // bHasNormalMap
-		fwrite(&default_has_texture, sizeof(bool), 1, fp); // bHasSpecularMap
-		fwrite(&default_has_texture, sizeof(bool), 1, fp); // bHasRoughnessMap
-		fwrite(&default_has_texture, sizeof(bool), 1, fp); // bHasMetallicMap
-		fwrite(&default_has_texture, sizeof(bool), 1, fp); // bHasEmissiveMap
-		fwrite(&default_has_texture, sizeof(bool), 1, fp); // bHasAOMap
-		fwrite(&default_has_texture, sizeof(bool), 1, fp); // bHasHeightMap
 	}
 
 	mesh_data* t_mesh;
@@ -610,6 +600,197 @@ bool el_mesh::export_bin(char* filename)
 
 	fclose(fp);
 
+	return true;
+}
+
+bool el_mesh::export_bin_v9(char* filename)
+{
+	ex_hd_t t_hd;
+
+	FILE* fp;
+	fp = fopen(filename, "wb");
+	if (fp == NULL) return false;
+
+	// Combine legacy and V9 materials for total count
+	int total_materials = m_mtrl_num + m_mtrl_v9_num;
+
+	t_hd.ver = EXPORTER_MESH_VER9;
+	t_hd.sig = EXPORTER_SIG;
+	t_hd.mtrl_num = total_materials;
+	t_hd.mesh_num = m_data_num;
+
+	fwrite(&t_hd, sizeof(ex_hd_t), 1, fp);
+
+	int i;
+
+	// Write legacy materials first (converted to V9 format)
+	for (i = 0; i < m_mtrl_num; i++) {
+		mtrl_data* legacy_mtrl = m_mtrl_data[i];
+		if (legacy_mtrl == NULL) continue;
+
+		// Write basic material info
+		fwrite(&legacy_mtrl->m_mtrl_id, 4, 1, fp);
+		fwrite(&legacy_mtrl->m_sub_mtrl_id, 4, 1, fp);
+		fwrite(&legacy_mtrl->m_ambient, sizeof(D3DXCOLOR), 1, fp);
+		fwrite(&legacy_mtrl->m_diffuse, sizeof(D3DXCOLOR), 1, fp);
+		fwrite(&legacy_mtrl->m_specular, sizeof(D3DXCOLOR), 1, fp);
+		fwrite(&legacy_mtrl->m_power, 4, 1, fp);
+		fwrite(&legacy_mtrl->m_sub_mtrl_num, 4, 1, fp);
+		fwrite(legacy_mtrl->m_tex_name, MAX_PATH_NAME_LEN, 1, fp);
+		fwrite(legacy_mtrl->m_opa_name, MAX_PATH_NAME_LEN, 1, fp);
+		fwrite(&legacy_mtrl->m_twosided, sizeof(int), 1, fp);
+		fwrite(&legacy_mtrl->m_additive, sizeof(int), 1, fp);
+		fwrite(&legacy_mtrl->m_alphatest_ref, sizeof(int), 1, fp);
+
+		// Write empty V9 extension data
+		char empty_path[MAX_PATH_NAME_LEN] = { 0 };
+		for (int tex_idx = 0; tex_idx < 7; tex_idx++) { // 7 additional texture paths
+			fwrite(empty_path, MAX_PATH_NAME_LEN, 1, fp);
+		}
+
+		// Write default PBR properties
+		D3DXCOLOR default_emissive(0.0f, 0.0f, 0.0f, 1.0f);
+		float default_roughness = 0.5f, default_metallic = 0.0f, default_ior = 1.5f, default_emissive_intensity = 0.0f;
+		int default_material_type = 0;
+		fwrite(&default_roughness, sizeof(float), 1, fp);
+		fwrite(&default_metallic, sizeof(float), 1, fp);
+		fwrite(&default_ior, sizeof(float), 1, fp);
+		fwrite(&default_emissive_intensity, sizeof(float), 1, fp);
+		fwrite(&default_emissive, sizeof(D3DXCOLOR), 1, fp);
+		fwrite(&default_material_type, sizeof(int), 1, fp);
+
+		// Write default UV channel assignments and transformations
+		int default_uv = 0;
+		for (int uv_idx = 0; uv_idx < 8; uv_idx++) fwrite(&default_uv, sizeof(int), 1, fp);
+		D3DXVECTOR2 default_tiling(1.0f, 1.0f), default_offset(0.0f, 0.0f);
+		float default_rotation = 0.0f;
+		for (int uv_idx = 0; uv_idx < 8; uv_idx++) fwrite(&default_tiling, sizeof(D3DXVECTOR2), 1, fp);
+		for (int uv_idx = 0; uv_idx < 8; uv_idx++) fwrite(&default_offset, sizeof(D3DXVECTOR2), 1, fp);
+		for (int uv_idx = 0; uv_idx < 8; uv_idx++) fwrite(&default_rotation, sizeof(float), 1, fp);
+
+		// Write texture flags (all false for legacy)
+		bool default_has_texture = false;
+		for (int flag_idx = 0; flag_idx < 7; flag_idx++) fwrite(&default_has_texture, sizeof(bool), 1, fp);
+	}
+
+	// Write V9 PBR materials
+	for (i = 0; i < m_mtrl_v9_num; i++) {
+		mtrl_data_v9* pbr_mtrl = m_mtrl_data_v9[i];
+		if (pbr_mtrl == NULL) continue;
+
+		// Write basic material info
+		fwrite(&pbr_mtrl->m_mtrl_id, 4, 1, fp);
+		fwrite(&pbr_mtrl->m_sub_mtrl_id, 4, 1, fp);
+		fwrite(&pbr_mtrl->m_ambient, sizeof(D3DXCOLOR), 1, fp);
+		fwrite(&pbr_mtrl->m_diffuse, sizeof(D3DXCOLOR), 1, fp);
+		fwrite(&pbr_mtrl->m_specular, sizeof(D3DXCOLOR), 1, fp);
+		fwrite(&pbr_mtrl->m_power, 4, 1, fp);
+		fwrite(&pbr_mtrl->m_sub_mtrl_num, 4, 1, fp);
+		fwrite(pbr_mtrl->m_tex_name, MAX_PATH_NAME_LEN, 1, fp);
+		fwrite(pbr_mtrl->m_opa_name, MAX_PATH_NAME_LEN, 1, fp);
+		fwrite(&pbr_mtrl->m_twosided, sizeof(int), 1, fp);
+		fwrite(&pbr_mtrl->m_additive, sizeof(int), 1, fp);
+		fwrite(&pbr_mtrl->m_alphatest_ref, sizeof(int), 1, fp);
+
+		// Write extended PBR texture paths
+		fwrite(pbr_mtrl->m_normal_map, MAX_PATH_NAME_LEN, 1, fp);
+		fwrite(pbr_mtrl->m_specular_map, MAX_PATH_NAME_LEN, 1, fp);
+		fwrite(pbr_mtrl->m_roughness_map, MAX_PATH_NAME_LEN, 1, fp);
+		fwrite(pbr_mtrl->m_metallic_map, MAX_PATH_NAME_LEN, 1, fp);
+		fwrite(pbr_mtrl->m_emissive_map, MAX_PATH_NAME_LEN, 1, fp);
+		fwrite(pbr_mtrl->m_ao_map, MAX_PATH_NAME_LEN, 1, fp);
+		fwrite(pbr_mtrl->m_height_map, MAX_PATH_NAME_LEN, 1, fp);
+
+		// Write PBR properties
+		fwrite(&pbr_mtrl->m_roughness, sizeof(float), 1, fp);
+		fwrite(&pbr_mtrl->m_metallic, sizeof(float), 1, fp);
+		fwrite(&pbr_mtrl->m_ior, sizeof(float), 1, fp);
+		fwrite(&pbr_mtrl->m_emissive_intensity, sizeof(float), 1, fp);
+		fwrite(&pbr_mtrl->m_emissive, sizeof(D3DXCOLOR), 1, fp);
+		fwrite(&pbr_mtrl->m_material_type, sizeof(int), 1, fp);
+
+		// Write UV channel assignments
+		fwrite(&pbr_mtrl->m_uv_diffuse, sizeof(int), 1, fp);
+		fwrite(&pbr_mtrl->m_uv_normal, sizeof(int), 1, fp);
+		fwrite(&pbr_mtrl->m_uv_specular, sizeof(int), 1, fp);
+		fwrite(&pbr_mtrl->m_uv_roughness, sizeof(int), 1, fp);
+		fwrite(&pbr_mtrl->m_uv_metallic, sizeof(int), 1, fp);
+		fwrite(&pbr_mtrl->m_uv_emissive, sizeof(int), 1, fp);
+		fwrite(&pbr_mtrl->m_uv_ao, sizeof(int), 1, fp);
+		fwrite(&pbr_mtrl->m_uv_height, sizeof(int), 1, fp);
+
+		// Write UV transformations
+		for (int uv_idx = 0; uv_idx < 8; uv_idx++) {
+			fwrite(&pbr_mtrl->m_uv_tiling[uv_idx], sizeof(D3DXVECTOR2), 1, fp);
+		}
+		for (int uv_idx = 0; uv_idx < 8; uv_idx++) {
+			fwrite(&pbr_mtrl->m_uv_offset[uv_idx], sizeof(D3DXVECTOR2), 1, fp);
+		}
+		for (int uv_idx = 0; uv_idx < 8; uv_idx++) {
+			fwrite(&pbr_mtrl->m_uv_rotation[uv_idx], sizeof(float), 1, fp);
+		}
+
+		// Write texture flags
+		fwrite(&pbr_mtrl->m_bHasNormalMap, sizeof(bool), 1, fp);
+		fwrite(&pbr_mtrl->m_bHasSpecularMap, sizeof(bool), 1, fp);
+		fwrite(&pbr_mtrl->m_bHasRoughnessMap, sizeof(bool), 1, fp);
+		fwrite(&pbr_mtrl->m_bHasMetallicMap, sizeof(bool), 1, fp);
+		fwrite(&pbr_mtrl->m_bHasEmissiveMap, sizeof(bool), 1, fp);
+		fwrite(&pbr_mtrl->m_bHasAOMap, sizeof(bool), 1, fp);
+		fwrite(&pbr_mtrl->m_bHasHeightMap, sizeof(bool), 1, fp);
+	}
+
+	// Write mesh data (same as legacy format)
+	mesh_data* t_mesh;
+	bool t_is_bip = false;
+	int t_is_vertex_color = 0;
+
+	for (i = 0; i < m_data_num; i++) {
+		t_is_bip = false;
+		t_is_vertex_color = 0;
+
+		t_mesh = m_data[i];
+		if (t_mesh == NULL) continue;
+
+		fwrite(t_mesh->m_Name, MAX_NAME_LEN, 1, fp);
+		fwrite(t_mesh->m_Parent, MAX_NAME_LEN, 1, fp);
+
+		t_is_vertex_color = t_mesh->m_point_color_num;
+		fwrite(&t_mesh->m_mat_base, sizeof(D3DXMATRIX), 1, fp);
+		fwrite(&t_mesh->m_ap_scale, sizeof(D3DXVECTOR3), 1, fp);
+		fwrite(&t_mesh->m_axis_rot, sizeof(D3DXVECTOR3), 1, fp);
+		fwrite(&t_mesh->m_axis_rot_angle, sizeof(float), 1, fp);
+		fwrite(&t_mesh->m_axis_scale, sizeof(D3DXVECTOR3), 1, fp);
+		fwrite(&t_mesh->m_axis_scale_angle, sizeof(float), 1, fp);
+		fwrite(&t_mesh->m_etc_mat, sizeof(D3DXMATRIX), 1, fp);
+
+		fwrite(&t_mesh->m_point_num, 4, 1, fp);
+		if (t_mesh->m_point_num) {
+			fwrite(t_mesh->m_point_list, sizeof(D3DXVECTOR3), t_mesh->m_point_num, fp);
+		}
+
+		fwrite(&t_mesh->m_face_num, 4, 1, fp);
+		if (t_mesh->m_face_num) {
+			fwrite(t_mesh->m_face_list, sizeof(RFaceInfo), t_mesh->m_face_num, fp);
+			fwrite(t_mesh->m_face_normal_list, sizeof(RFaceNormalInfo), t_mesh->m_face_num, fp);
+		}
+
+		fwrite(&t_is_vertex_color, sizeof(int), 1, fp);
+		if (t_is_vertex_color) {
+			fwrite(t_mesh->m_point_color_list, sizeof(D3DXVECTOR3), t_mesh->m_point_color_num, fp);
+		}
+
+		fwrite(&t_mesh->m_mtrl_id, 4, 1, fp);
+		fwrite(&t_mesh->m_physique_num, 4, 1, fp);
+
+		if (t_mesh->m_physique_num) {
+			for (int j = 0; j < t_mesh->m_physique_num; j++) {
+				fwrite(&t_mesh->m_physique[j], sizeof(RPhysiqueInfo), 1, fp);
+			}
+		}
+	}
+
+	fclose(fp);
 	return true;
 }
 
